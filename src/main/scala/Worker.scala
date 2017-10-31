@@ -15,7 +15,7 @@ object Worker {
   def props: Props = Props(new Worker())
 
   case class Work(workName: String)
-  case class Result(r: String)
+  case class WorkResult(r: String)
   case object WorkDone
   case object GetTask
   case class Task(wordToCount: String)
@@ -37,7 +37,8 @@ class Worker extends Actor {
 
   def working(workName: String, master: ActorRef): Receive = {
     case Task(wordToCount) =>
-      process(wordToCount) map (r => master ! Result(r))
+      process(wordToCount) map (r => master ! WorkResult(r))
+      master ! GetTask
     case WorkDone =>
       context.become(finish(sender()))
   }

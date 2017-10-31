@@ -16,7 +16,7 @@ class WorkerSpec extends TestKit(ActorSystem("worker")) with ImplicitSender with
       expectMsg(d, GetTask)
 
       worker ! Task("clojure")
-      val result = expectMsgType[Result](d)
+      val result = expectMsgType[WorkResult](d)
       println(result)
 
       success
