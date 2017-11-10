@@ -15,8 +15,14 @@ class WorkerSpec extends TestKit(ActorSystem("worker")) with ImplicitSender with
       worker ! Work("findWordCount")
       expectMsg(d, GetTask)
 
+      worker ! Task("ahdgflkdagflsadgfldsgflghd")
+      var result = expectMsgType[WorkResult](d)
+      println(result)
+
+      expectMsg(d, GetTask)
+
       worker ! Task("clojure")
-      val result = expectMsgType[WorkResult](d)
+      result = expectMsgType[WorkResult](d)
       println(result)
 
       success

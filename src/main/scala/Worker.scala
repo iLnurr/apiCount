@@ -5,7 +5,7 @@ import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.coding.{Deflate, Gzip, NoCoding}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{ContentTypes, HttpRequest, HttpResponse, Uri}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.model.headers.HttpEncodings
 import akka.http.scaladsl.unmarshalling.Unmarshal
@@ -13,6 +13,7 @@ import akka.stream.{ActorMaterializer, Materializer}
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object Worker {
   def props: Props = Props(new Worker())
@@ -23,33 +24,33 @@ object Worker {
   case object GetTask
   case class Task(wordToCount: String)
   case class SOFResult(
-                        items: List[Answer],
-                        has_more: Option[Boolean],
-                        quota_max: Option[Int],
-                        quota_remaining: Option[Int]
+                        items: List[Answer] = List(),
+                        has_more: Option[Boolean] = None,
+                        quota_max: Option[Int] = None,
+                        quota_remaining: Option[Int] = None
                       )
   case class Answer(
-                     tags: List[String],
-                     owner: Owner,
-                     is_answered: Option[Boolean],
-                     view_count: Option[Int],
-                     answer_count: Option[Int],
-                     score: Option[Int],
-                     last_activity_date: Option[Long],
-                     creation_date: Option[Long],
-                     question_id: Option[Long],
-                     link: Option[String],
-                     title: Option[String]
+                     tags: List[String] = List(),
+                     owner: Option[Owner] = None,
+                     is_answered: Option[Boolean] = None,
+                     view_count: Option[Int] = None,
+                     answer_count: Option[Int] = None,
+                     score: Option[Int] = None,
+                     last_activity_date: Option[Long] = None,
+                     creation_date: Option[Long] = None,
+                     question_id: Option[Long] = None,
+                     link: Option[String] = None,
+                     title: Option[String] = None
                    )
   case class Owner(
-                    reputation: Option[Int],
-                    user_id: Option[Long],
-                    user_type: Option[String],
-                    accept_rate: Option[Int],
-                    profile_name: Option[String],
-                    profile_image: Option[String],
-                    display_name: Option[String],
-                    link: Option[String]
+                    reputation: Option[Int] = None,
+                    user_id: Option[Long] = None,
+                    user_type: Option[String] = None,
+                    accept_rate: Option[Int] = None,
+                    profile_name: Option[String] = None,
+                    profile_image: Option[String] = None,
+                    display_name: Option[String] = None,
+                    link: Option[String] = None
                   )
 }
 
@@ -57,7 +58,7 @@ class Worker extends Actor with ActorLogging with HttpClient {
   import Worker._
 
   implicit val system = context.system
-  implicit val ex = context.dispatcher
+  implicit val ec = context.dispatcher
   implicit val mat = ActorMaterializer()
 
   def idle: Receive = {
@@ -72,9 +73,12 @@ class Worker extends Actor with ActorLogging with HttpClient {
   def working(workName: String, master: ActorRef): Receive = {
     case Task(wordToCount) =>
       log.debug(s"Got task with word:${wordToCount}")
-      process(wordToCount) foreach { r =>
-        master ! WorkResult(r)
-        master ! GetTask
+      process(wordToCount) onComplete {
+        case Success(r) =>
+          master ! WorkResult(r)
+          master ! GetTask
+        case Failure(ex) =>
+          log.error(ex, ex.getMessage)
       }
     case WorkDone =>
       log.debug(s"Got msg workDone")
@@ -91,7 +95,7 @@ class Worker extends Actor with ActorLogging with HttpClient {
 
 trait HttpClient extends JsonProtocol {
   implicit val system: ActorSystem
-  implicit val ex: ExecutionContext
+  implicit val ec: ExecutionContext
   implicit val mat: Materializer
 
   def process(wordToCount: String): Future[String] = {
@@ -106,7 +110,7 @@ trait HttpClient extends JsonProtocol {
     eventualHttpResponse flatMap { response =>
       response.status match {
         case OK ⇒
-          Unmarshal(response.entity.withContentType(ContentTypes.`application/json`)).to[String]
+          Unmarshal(response.entity).to[SOFResult]
         case _ ⇒
           Unmarshal(response.entity).to[String].flatMap { entity ⇒
             val error = s"Request failed with status code ${response.status} and entity $entity"
@@ -136,7 +140,7 @@ trait HttpClient extends JsonProtocol {
 }
 
 trait JsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val sofresultFormat: RootJsonFormat[SOFResult] = jsonFormat4(SOFResult)
-  implicit val answerFormat: RootJsonFormat[Answer] = jsonFormat11(Answer)
   implicit val ownerFormat: RootJsonFormat[Owner] = jsonFormat8(Owner)
+  implicit val answerFormat: RootJsonFormat[Answer] = jsonFormat11(Answer)
+  implicit val sofresultFormat: RootJsonFormat[SOFResult] = jsonFormat4(SOFResult)
 }
