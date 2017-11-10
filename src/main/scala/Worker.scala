@@ -1,6 +1,6 @@
 import java.io.IOException
 
-import Worker.{Answer, Owner}
+import Worker.{Answer, Owner, SOFResult}
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.coding.{Deflate, Gzip, NoCoding}
@@ -22,8 +22,14 @@ object Worker {
   case object WorkDone
   case object GetTask
   case class Task(wordToCount: String)
+  case class SOFResult(
+                        items: List[Answer],
+                        has_more: Option[Boolean],
+                        quota_max: Option[Int],
+                        quota_remaining: Option[Int]
+                      )
   case class Answer(
-                     tags: Option[List[String]],
+                     tags: List[String],
                      owner: Owner,
                      is_answered: Option[Boolean],
                      view_count: Option[Int],
@@ -41,6 +47,7 @@ object Worker {
                     user_type: Option[String],
                     accept_rate: Option[Int],
                     profile_name: Option[String],
+                    profile_image: Option[String],
                     display_name: Option[String],
                     link: Option[String]
                   )
@@ -88,7 +95,7 @@ trait HttpClient extends JsonProtocol {
   implicit val mat: Materializer
 
   def process(wordToCount: String): Future[String] = {
-    getInfo(wordToCount)
+    getInfo(wordToCount).map(res => res.toString)
   }
 
   private def getInfo(word: String) = {
@@ -129,6 +136,7 @@ trait HttpClient extends JsonProtocol {
 }
 
 trait JsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
+  implicit val sofresultFormat: RootJsonFormat[SOFResult] = jsonFormat4(SOFResult)
   implicit val answerFormat: RootJsonFormat[Answer] = jsonFormat11(Answer)
-  implicit val ownerFormat: RootJsonFormat[Owner] = jsonFormat7(Owner)
+  implicit val ownerFormat: RootJsonFormat[Owner] = jsonFormat8(Owner)
 }
