@@ -13,8 +13,9 @@ object Dependency {
     val http = "com.typesafe.akka" %% "akka-http-core" % httpV
     val sprayJson = "com.typesafe.akka" %% "akka-http-spray-json" % httpV
     val testKit = "com.typesafe.akka" %% "akka-testkit" % V % "test"
+    val httpTestKit = "com.typesafe.akka" %% "akka-http-testkit" % httpV
 
-    def all = Seq(actor, slf4j, stream, http, sprayJson, testKit)
+    def all = Seq(actor, slf4j, stream, http, sprayJson, testKit, httpTestKit)
   }
 
   object Joda {
