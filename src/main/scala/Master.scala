@@ -14,7 +14,7 @@ class Master extends Actor with ActorLogging {
   import Worker._
 
   val config = ConfigFactory.load()
-  val nrOfRoutee = config.getInt("routees")
+  val nrOfRoutee = 10
 
   var words = ListBuffer.empty[String]
   var wordsCount = 0
@@ -44,7 +44,7 @@ class Master extends Actor with ActorLogging {
       }
     case WorkResult(r) =>
       results += r
-      log.debug(s"Got work result from worker. Results size=${results.size}. Words size=${words.size}")
+      log.debug(s"Got work result from worker. Results size=${results.size}. WordQueue size=${words.size}")
       if (results.size == wordsCount) {
         context.become(finishing(jobName))
         self ! ProcessResults(receiver)

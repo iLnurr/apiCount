@@ -1,4 +1,5 @@
 import akka.actor.{ActorRef, ActorSystem}
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.server.Directives._
 import akka.pattern.ask
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, Created, NotFound, OK}
@@ -26,7 +27,7 @@ trait RestRoutes extends MasterApi
   def tagsRoute = parameters('tag.*) { (tags) =>
       tags.toList match {
         case Nil         => complete(s"There are no tags.")
-        case multiple    => complete(s"The tags are ${multiple.mkString(", ")}.")
+        case multiple    => complete(ToResponseMarshallable(getCount(multiple)))
       }
     }
 
@@ -42,8 +43,8 @@ trait MasterApi {
 
   lazy val master = createMaster()
 
-  def getCount(tag: String) =
-    master.ask(Start(s"search - $tag", List(tag)))
+  def getCount(tags: List[String]) =
+    master.ask(Start(s"search - $tags", tags))
     .mapTo[Results]
 
 }

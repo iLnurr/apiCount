@@ -1,16 +1,14 @@
 import java.io.IOException
 
-import Worker.{Answer, Owner, SOFResult}
+import Worker.SOFResult
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.coding.{Deflate, Gzip, NoCoding}
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.model.headers.HttpEncodings
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.{ActorMaterializer, Materializer}
-import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -137,10 +135,4 @@ trait HttpClient extends JsonProtocol {
 
     decoder.decodeMessage(response)
   }
-}
-
-trait JsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val ownerFormat: RootJsonFormat[Owner] = jsonFormat8(Owner)
-  implicit val answerFormat: RootJsonFormat[Answer] = jsonFormat11(Answer)
-  implicit val sofresultFormat: RootJsonFormat[SOFResult] = jsonFormat4(SOFResult)
 }
