@@ -14,7 +14,7 @@ class MasterSpec extends TestKit(ActorSystem("worker")) with ImplicitSender with
 
       master ! Start("find please word count", List("clojure", "scala", "odersky", "java", "spark"))
       val result = expectMsgType[Results](d)
-      println(result.r.size)
+      println(result.results.size)
       success
     }
   }

@@ -1,13 +1,17 @@
+import Worker.WorkResult
 import akka.actor._
 import com.typesafe.config.ConfigFactory
+import spray.json._
 
 import scala.collection.mutable.ListBuffer
 
-object Master {
+object Master extends JsonProtocol{
   def props() = Props(new Master())
   case class Start(jobName: String, text: List[String])
   case class ProcessResults(receiver: ActorRef)
-  case class Results(r: List[String])
+  case class Results(results: List[WorkResult]) {
+    def toJson = results.toJson
+  }
 }
 class Master extends Actor with ActorLogging {
   import Master._
@@ -18,7 +22,7 @@ class Master extends Actor with ActorLogging {
 
   var words = ListBuffer.empty[String]
   var wordsCount = 0
-  var results = ListBuffer.empty[String]
+  var results = ListBuffer.empty[WorkResult]
 
   override def receive: Receive = idle
   def idle: Receive = {
@@ -42,8 +46,8 @@ class Master extends Actor with ActorLogging {
         val tail = words.tail
         words = tail
       }
-    case WorkResult(r) =>
-      results += r
+    case wr: WorkResult =>
+      results += wr
       log.debug(s"Got work result from worker. Results size=${results.size}. WordQueue size=${words.size}")
       if (results.size == wordsCount) {
         context.become(finishing(jobName))
@@ -52,9 +56,8 @@ class Master extends Actor with ActorLogging {
   }
   def finishing(jobName: String): Receive = {
     case ProcessResults(receiver) =>
-      log.debug(s"Job=${jobName} is done, results: ${results}")
+      log.debug(s"Job=${jobName} is done, results size: ${results.size}")
       receiver ! Results(results.toList)
-      context.stop(self)
   }
 
   def createRoutee(): Unit = {

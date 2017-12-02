@@ -17,7 +17,7 @@ object Worker {
   def props: Props = Props(new Worker())
 
   case class Work(workName: String)
-  case class WorkResult(r: String)
+  case class WorkResult(word: String, result: SOFResult)
   case object WorkDone
   case object GetTask
   case class Task(wordToCount: String)
@@ -73,7 +73,7 @@ class Worker extends Actor with ActorLogging with HttpClient {
       log.debug(s"Got task with word:${wordToCount}")
       process(wordToCount) onComplete {
         case Success(r) =>
-          master ! WorkResult(r)
+          master ! WorkResult(wordToCount, r)
           master ! GetTask
         case Failure(ex) =>
           log.error(ex, ex.getMessage)
@@ -96,8 +96,8 @@ trait HttpClient extends JsonProtocol {
   implicit val ec: ExecutionContext
   implicit val mat: Materializer
 
-  def process(wordToCount: String): Future[String] = {
-    getInfo(wordToCount).map(res => res.toString)
+  def process(wordToCount: String): Future[SOFResult] = {
+    getInfo(wordToCount)
   }
 
   private def getInfo(word: String) = {

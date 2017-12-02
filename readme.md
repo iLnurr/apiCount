@@ -23,4 +23,4 @@ Install command-line http-client: httpie.
 
 And then test http api
 
-`$ http GET localhost:5000/search?tag=scala`
+`$ http :5000/search tag==scala tag==clojure`

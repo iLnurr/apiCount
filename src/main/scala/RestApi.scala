@@ -41,7 +41,7 @@ trait MasterApi {
   implicit def executionContext: ExecutionContext
   implicit def requestTimeout: Timeout
 
-  lazy val master = createMaster()
+  def master = createMaster()
 
   def getCount(tags: List[String]) =
     master.ask(Start(s"search - $tags", tags))
